@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Attendance">
+<title>Attendance</title>
+</head>
+<body>
+<div id="app">
+  <div id="loading" class="loading-screen">
+    <div class="loading-text">Loading your attendance&hellip;</div>
+  </div>
+</div>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap');
+
+  :root {
+    --bg: #10141b;
+    --bg-elevated: #1a2029;
+    --bg-elevated-2: #232b37;
+    --border: #2a3240;
+    --accent: #e8a33d;
+    --accent-dim: #c98a2e;
+    --safe: #4fcb82;
+    --safe-dim: #234531;
+    --danger: #f0616b;
+    --danger-dim: #452428;
+    --text-primary: #f3f5f8;
+    --text-secondary: #8e97a8;
+    --text-tertiary: #5c6577;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #10141b;
+    min-height: 100%;
+  }
+
+  #app {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding: max(20px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 60px max(16px, env(safe-area-inset-left));
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .loading-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40vh;
+  }
+  .loading-text {
+    color: var(--text-secondary);
+    font-size: 14px;
+  }
+
+  .storage-banner {
+    background: var(--bg-elevated-2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+
+  h1.title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 46px;
+    letter-spacing: 0.02em;
+    line-height: 1;
+    margin: 0 0 4px;
+    color: var(--text-primary);
+  }
+
+  .date-line {
+    color: var(--text-secondary);
+    font-size: 13.5px;
+    margin-bottom: 20px;
+  }
+
+  .overall-card {
+    background: linear-gradient(155deg, var(--bg-elevated), var(--bg-elevated-2));
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 22px;
+    margin-bottom: 24px;
+  }
+  .overall-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .overall-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+  }
+  .overall-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-tertiary);
+  }
+  .overall-score {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 44px;
+    line-height: 1;
+    margin-bottom: 14px;
+  }
+  .overall-score.safe { color: var(--safe); }
+  .overall-score.danger { color: var(--danger); }
+  .overall-score.neutral { color: var(--text-secondary); }
+
+  .progress-track {
+    height: 8px;
+    background: var(--bg);
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 0.4s ease, background 0.4s ease;
+  }
+  .progress-fill.safe { background: var(--safe); }
+  .progress-fill.danger { background: var(--danger); }
+  .progress-fill.neutral { background: var(--text-tertiary); }
+
+  .threshold-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+    font-size: 12.5px;
+    color: var(--text-secondary);
+  }
+  .threshold-row select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+  }
+
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    margin: 0 0 10px 2px;
+  }
+
+  .subjects-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  @media (min-width: 620px) {
+    .subjects-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  .subject-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    position: relative;
+  }
+  .subject-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+    gap: 8px;
+  }
+  .subject-code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.06em;
+    margin-bottom: 3px;
+  }
+  .subject-name {
+    font-size: 14.5px;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.3;
+  }
+  .delete-btn {
+    background: none;
+    border: none;
+    color: var(--text-tertiary);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 2px 6px;
+    line-height: 1;
+    border-radius: 6px;
+    flex-shrink: 0;
+  }
+  .delete-btn:hover { color: var(--danger); background: var(--bg-elevated-2); }
+
+  .score-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .score-pct {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 24px;
+  }
+  .score-pct.safe { color: var(--safe); }
+  .score-pct.danger { color: var(--danger); }
+  .score-pct.neutral { color: var(--text-tertiary); }
+  .score-frac {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-tertiary);
+  }
+
+  .bunk-line {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin: 8px 0 12px;
+    min-height: 15px;
+  }
+  .bunk-line.safe { color: var(--safe); }
+  .bunk-line.danger { color: var(--danger); }
+
+  .status-row {
+    display: flex;
+    gap: 6px;
+  }
+  .status-btn {
+    flex: 1;
+    padding: 10px 4px;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    background: var(--bg-elevated-2);
+    color: var(--text-secondary);
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 12.5px;
+    cursor: pointer;
+    transition: transform 0.08s ease, background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+  .status-btn:active { transform: scale(0.96); }
+  .status-btn.active-present { background: var(--safe-dim); border-color: var(--safe); color: var(--safe); }
+  .status-btn.active-absent { background: var(--danger-dim); border-color: var(--danger); color: var(--danger); }
+  .status-btn.active-cancelled { background: var(--bg-elevated-2); border-color: var(--accent); color: var(--accent); }
+
+  .status-btn:focus-visible, .delete-btn:focus-visible, select:focus-visible, .add-input:focus-visible, .add-btn:focus-visible, .history-toggle:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .history-toggle {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    color: var(--text-tertiary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    padding: 10px 0 0;
+    margin-top: 10px;
+    border-top: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .history-toggle:hover { color: var(--text-secondary); }
+
+  .history-panel {
+    margin-top: 10px;
+  }
+  .history-list {
+    max-height: 220px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 10px;
+    padding-right: 2px;
+  }
+  .history-empty {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    margin-bottom: 10px;
+  }
+  .history-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    background: var(--bg-elevated-2);
+    border-radius: 7px;
+    font-size: 12px;
+  }
+  .history-date {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-secondary);
+    flex: 1;
+  }
+  .history-status {
+    font-weight: 600;
+    font-size: 11px;
+  }
+  .history-status.safe { color: var(--safe); }
+  .history-status.danger { color: var(--danger); }
+  .history-status.neutral { color: var(--accent); }
+  .history-remove {
+    background: none;
+    border: none;
+    color: var(--text-tertiary);
+    font-size: 14px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 2px;
+  }
+  .history-remove:hover { color: var(--danger); }
+
+  .backfill-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .backfill-row .add-input {
+    padding: 7px 8px;
+    font-size: 12.5px;
+  }
+  .backfill-row .add-btn {
+    padding: 7px 12px;
+    font-size: 12px;
+  }
+
+  .add-card {
+    background: var(--bg-elevated);
+    border: 1px dashed var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+  }
+  .add-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .add-input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    border-radius: 8px;
+    padding: 9px 10px;
+    font-size: 13.5px;
+    font-family: 'Inter', sans-serif;
+  }
+  .add-input.code { width: 90px; }
+  .add-input.name { flex: 1; min-width: 140px; }
+  .add-btn {
+    background: var(--accent);
+    color: #1a1206;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 16px;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .add-btn:active { transform: scale(0.97); }
+
+  .footer-note {
+    text-align: center;
+    color: var(--text-tertiary);
+    font-size: 11.5px;
+    margin-top: 28px;
+    line-height: 1.6;
+  }
+  .reset-link {
+    color: var(--text-tertiary);
+    text-decoration: underline;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-size: 11.5px;
+    font-family: inherit;
+  }
+  .reset-link:hover { color: var(--danger); }
+
+  .backup-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(8, 10, 14, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 50;
+  }
+  .backup-modal {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px;
+    width: 100%;
+    max-width: 420px;
+  }
+  .backup-modal-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 8px;
+  }
+  .backup-hint {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin: 0 0 12px;
+  }
+  .backup-textarea {
+    width: 100%;
+    min-height: 110px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 10px;
+    margin-bottom: 12px;
+    resize: vertical;
+  }
+  .import-error {
+    color: var(--danger);
+    font-size: 12px;
+    margin-bottom: 10px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+
+<script>
+(function () {
+  const STORAGE_KEY = 'attendance-tracker-data';
+
+  const DEFAULT_SUBJECTS = [
+    { code: 'CSBB 202', name: 'Design and Analysis of Algorithms', history: {} },
+    { code: 'CSBB 203', name: 'Operating System', history: {} },
+    { code: 'CSBB 204', name: 'Database Management Systems', history: {} },
+    { code: 'MALB 202', name: 'Probability and Statistics', history: {} },
+    { code: 'ECBB 206', name: 'Digital Electronics and Logic Design', history: {} }
+  ];
+
+  let data = null;
+  const expandedHistory = new Set();
+  let backupOpen = false;
+  let backupMode = 'export'; // 'export' or 'import'
+  let importError = '';
+
+  function todayStr() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function todayDisplay() {
+    return new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  }
+
+  function loadData() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) throw new Error('nothing saved yet');
+      const parsed = JSON.parse(raw);
+      if (!parsed.subjects) throw new Error('bad shape');
+      if (typeof parsed.threshold !== 'number') parsed.threshold = 0.75;
+      return parsed;
+    } catch (e) {
+      const fresh = { subjects: DEFAULT_SUBJECTS.map(s => ({ ...s, history: {} })), threshold: 0.75 };
+      persist(fresh);
+      return fresh;
+    }
+  }
+
+  function persist(d) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
+    } catch (e) {
+      console.error('Storage save failed', e);
+    }
+  }
+
+  function computeStats(subject) {
+    let attended = 0, total = 0;
+    for (const date in subject.history) {
+      const status = subject.history[date];
+      if (status === 'present') { attended++; total++; }
+      else if (status === 'absent') { total++; }
+    }
+    const pct = total > 0 ? attended / total : null;
+    return { attended, total, pct };
+  }
+
+  function bunkInfo(attended, total, threshold) {
+    if (total === 0) return { type: 'none' };
+    const pct = attended / total;
+    if (pct >= threshold) {
+      let skip = 0;
+      while (attended / (total + skip + 1) >= threshold && skip < 500) skip++;
+      return { type: 'skip', value: skip };
+    } else {
+      let need = 0;
+      while ((attended + need) / (total + need) < threshold && need < 500) need++;
+      return { type: 'need', value: need };
+    }
+  }
+
+  function statusClass(pct, threshold) {
+    if (pct === null) return 'neutral';
+    return pct >= threshold ? 'safe' : 'danger';
+  }
+
+  function fmtPct(pct) {
+    return pct === null ? '—' : (pct * 100).toFixed(1) + '%';
+  }
+
+  // ---- Actions (exposed to inline handlers) ----
+
+  window.markStatus = async function (index, status) {
+    const today = todayStr();
+    const subj = data.subjects[index];
+    if (subj.history[today] === status) {
+      delete subj.history[today]; // tap again to unmark
+    } else {
+      subj.history[today] = status;
+    }
+    await persist(data);
+    render();
+  };
+
+  window.deleteSubject = async function (index) {
+    const subj = data.subjects[index];
+    if (!confirm('Remove "' + subj.name + '" from your tracker? This deletes its attendance history.')) return;
+    data.subjects.splice(index, 1);
+    await persist(data);
+    render();
+  };
+
+  window.addSubject = async function () {
+    const codeInput = document.getElementById('new-code');
+    const nameInput = document.getElementById('new-name');
+    const code = codeInput.value.trim();
+    const name = nameInput.value.trim();
+    if (!name) { nameInput.focus(); return; }
+    data.subjects.push({ code: code || '—', name, history: {} });
+    codeInput.value = '';
+    nameInput.value = '';
+    await persist(data);
+    render();
+  };
+
+  window.toggleHistory = function (index) {
+    if (expandedHistory.has(index)) expandedHistory.delete(index);
+    else expandedHistory.add(index);
+    render();
+  };
+
+  window.deleteHistoryEntry = async function (index, date) {
+    delete data.subjects[index].history[date];
+    await persist(data);
+    render();
+  };
+
+  window.backfill = async function (index) {
+    const dateEl = document.getElementById('backfill-date-' + index);
+    const statusEl = document.getElementById('backfill-status-' + index);
+    if (!dateEl.value) { dateEl.focus(); return; }
+    data.subjects[index].history[dateEl.value] = statusEl.value;
+    await persist(data);
+    render();
+  };
+
+  window.changeThreshold = async function (val) {
+    data.threshold = parseFloat(val);
+    await persist(data);
+    render();
+  };
+
+  window.resetAll = async function () {
+    if (!confirm('Reset ALL attendance data? This cannot be undone.')) return;
+    data = { subjects: DEFAULT_SUBJECTS.map(s => ({ ...s, history: {} })), threshold: 0.75 };
+    await persist(data);
+    render();
+  };
+
+  window.openBackup = function (mode) {
+    backupOpen = true;
+    backupMode = mode;
+    importError = '';
+    render();
+  };
+
+  window.closeBackup = function () {
+    backupOpen = false;
+    importError = '';
+    render();
+  };
+
+  window.copyBackupCode = function () {
+    const el = document.getElementById('backup-textarea');
+    el.select();
+    el.setSelectionRange(0, 999999);
+    try {
+      document.execCommand('copy');
+    } catch (e) {}
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(el.value).catch(() => {});
+    }
+    const btn = document.getElementById('copy-backup-btn');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(() => { if (btn) btn.textContent = 'Copy code'; }, 1500); }
+  };
+
+  window.doImport = async function () {
+    const el = document.getElementById('backup-textarea');
+    try {
+      const parsed = JSON.parse(el.value.trim());
+      if (!parsed.subjects || !Array.isArray(parsed.subjects)) throw new Error('bad shape');
+      if (!confirm('Replace all current data with this backup?')) return;
+      data = parsed;
+      if (typeof data.threshold !== 'number') data.threshold = 0.75;
+      await persist(data);
+      backupOpen = false;
+      importError = '';
+      render();
+    } catch (e) {
+      importError = "That doesn't look like a valid backup code — check you copied the whole thing.";
+      render();
+    }
+  };
+
+  // ---- Render ----
+
+  function render() {
+    const threshold = data.threshold;
+    const today = todayStr();
+
+    let totalAttended = 0, totalClasses = 0;
+    const subjectCards = data.subjects.map((subj, i) => {
+      const { attended, total, pct } = computeStats(subj);
+      totalAttended += attended;
+      totalClasses += total;
+      const cls = statusClass(pct, threshold);
+      const bunk = bunkInfo(attended, total, threshold);
+      let bunkText = '';
+      let bunkCls = '';
+      if (bunk.type === 'none') {
+        bunkText = 'No classes marked yet';
+      } else if (bunk.type === 'skip') {
+        bunkText = bunk.value > 0 ? ('Can skip ' + bunk.value + ' more and stay safe') : 'Right at the edge — don\'t skip the next one';
+        bunkCls = 'safe';
+      } else {
+        bunkText = 'Attend next ' + bunk.value + ' in a row to recover';
+        bunkCls = 'danger';
+      }
+      const todayStatus = subj.history[today];
+      const isExpanded = expandedHistory.has(i);
+
+      let historyPanel = '';
+      if (isExpanded) {
+        const dates = Object.keys(subj.history).sort().reverse();
+        let listHtml;
+        if (dates.length === 0) {
+          listHtml = '<div class="history-empty">No days logged yet.</div>';
+        } else {
+          const rows = dates.map(date => {
+            const status = subj.history[date];
+            const label = status === 'present' ? 'Present' : status === 'absent' ? 'Absent' : 'No Class';
+            const rowCls = status === 'present' ? 'safe' : status === 'absent' ? 'danger' : 'neutral';
+            const dispDate = new Date(date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' });
+            return `
+              <div class="history-row">
+                <span class="history-date">${dispDate}</span>
+                <span class="history-status ${rowCls}">${label}</span>
+                <button class="history-remove" onclick="deleteHistoryEntry(${i}, '${date}')" aria-label="Remove entry">&times;</button>
+              </div>
+            `;
+          }).join('');
+          listHtml = `<div class="history-list">${rows}</div>`;
+        }
+        historyPanel = `
+          <div class="history-panel">
+            ${listHtml}
+            <div class="backfill-row">
+              <input type="date" id="backfill-date-${i}" class="add-input" max="${today}" />
+              <select id="backfill-status-${i}" class="add-input">
+                <option value="present">Present</option>
+                <option value="absent">Absent</option>
+                <option value="cancelled">No Class</option>
+              </select>
+              <button class="add-btn" onclick="backfill(${i})">Log</button>
+            </div>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="subject-card">
+          <div class="subject-head">
+            <div>
+              <div class="subject-code">${escapeHtml(subj.code)}</div>
+              <div class="subject-name">${escapeHtml(subj.name)}</div>
+            </div>
+            <button class="delete-btn" onclick="deleteSubject(${i})" aria-label="Remove subject" title="Remove subject">&times;</button>
+          </div>
+          <div class="score-row">
+            <span class="score-pct ${cls}">${fmtPct(pct)}</span>
+            <span class="score-frac">${attended}/${total} classes</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill ${cls}" style="width:${pct === null ? 0 : Math.min(pct * 100, 100)}%"></div>
+          </div>
+          <div class="bunk-line ${bunkCls}">${bunkText}</div>
+          <div class="status-row">
+            <button class="status-btn ${todayStatus === 'present' ? 'active-present' : ''}" onclick="markStatus(${i}, 'present')">Present</button>
+            <button class="status-btn ${todayStatus === 'absent' ? 'active-absent' : ''}" onclick="markStatus(${i}, 'absent')">Absent</button>
+            <button class="status-btn ${todayStatus === 'cancelled' ? 'active-cancelled' : ''}" onclick="markStatus(${i}, 'cancelled')">No Class</button>
+          </div>
+          <button class="history-toggle" onclick="toggleHistory(${i})">${isExpanded ? '▲ Hide log' : '▼ View log (' + total + ')'}</button>
+          ${historyPanel}
+        </div>
+      `;
+    }).join('');
+
+    const overallPct = totalClasses > 0 ? totalAttended / totalClasses : null;
+    const overallCls = statusClass(overallPct, threshold);
+
+    let backupPanel = '';
+    if (backupOpen) {
+      const exportValue = backupMode === 'export' ? JSON.stringify(data) : '';
+      backupPanel = `
+        <div class="backup-overlay" onclick="if(event.target===this) closeBackup()">
+          <div class="backup-modal">
+            <div class="backup-modal-head">
+              <span>${backupMode === 'export' ? 'Your backup code' : 'Paste backup code'}</span>
+              <button class="delete-btn" onclick="closeBackup()" aria-label="Close">&times;</button>
+            </div>
+            <p class="backup-hint">${backupMode === 'export'
+              ? 'Copy this and send it to your other device (Notes, Messages to yourself, email — whatever\'s easiest), then paste it there using "Restore from code".'
+              : 'Paste the code you copied from your other device, then tap Import.'}</p>
+            <textarea id="backup-textarea" class="backup-textarea" ${backupMode === 'export' ? 'readonly' : ''} placeholder="${backupMode === 'import' ? 'Paste your backup code here…' : ''}">${exportValue}</textarea>
+            ${importError ? `<div class="import-error">${importError}</div>` : ''}
+            ${backupMode === 'export'
+              ? `<button id="copy-backup-btn" class="add-btn" style="width:100%;" onclick="copyBackupCode()">Copy code</button>`
+              : `<button class="add-btn" style="width:100%;" onclick="doImport()">Import</button>`}
+          </div>
+        </div>
+      `;
+    }
+
+    document.getElementById('app').innerHTML = `
+      <div class="eyebrow">Semester III · CSE</div>
+      <h1 class="title">Attendance</h1>
+      <div class="date-line">${todayDisplay()}</div>
+
+      <div class="overall-card">
+        <div class="overall-top">
+          <div class="overall-label">Overall</div>
+          <div class="overall-count">${totalAttended}/${totalClasses} classes logged</div>
+        </div>
+        <div class="overall-score ${overallCls}">${fmtPct(overallPct)}</div>
+        <div class="progress-track">
+          <div class="progress-fill ${overallCls}" style="width:${overallPct === null ? 0 : Math.min(overallPct * 100, 100)}%"></div>
+        </div>
+        <div class="threshold-row">
+          Required minimum:
+          <select onchange="changeThreshold(this.value)">
+            <option value="0.65" ${threshold === 0.65 ? 'selected' : ''}>65%</option>
+            <option value="0.70" ${threshold === 0.70 ? 'selected' : ''}>70%</option>
+            <option value="0.75" ${threshold === 0.75 ? 'selected' : ''}>75%</option>
+            <option value="0.80" ${threshold === 0.80 ? 'selected' : ''}>80%</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section-label">Subjects</div>
+      <div class="subjects-grid">
+        ${subjectCards}
+      </div>
+
+      <div class="add-card">
+        <div class="section-label" style="margin-bottom:8px;">Add a subject</div>
+        <div class="add-row">
+          <input id="new-code" class="add-input code" type="text" placeholder="Code" />
+          <input id="new-name" class="add-input name" type="text" placeholder="Subject name" onkeydown="if(event.key==='Enter') addSubject()" />
+          <button class="add-btn" onclick="addSubject()">Add</button>
+        </div>
+      </div>
+
+      <div class="footer-note">
+        Tap a status again to unmark it<br/>
+        <button class="reset-link" onclick="openBackup('export')">Backup / move to another device</button>
+        &nbsp;·&nbsp;
+        <button class="reset-link" onclick="openBackup('import')">Restore from code</button>
+        &nbsp;·&nbsp;
+        <button class="reset-link" onclick="resetAll()">Reset all data</button>
+      </div>
+      ${backupPanel}
+    `;
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  // ---- Init ----
+  (function init() {
+    data = loadData();
+    render();
+  })();
+})();
+</script>
+</body>
+</html>
